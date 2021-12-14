@@ -2,20 +2,58 @@
 #include <windows.h>
 #include <vector>
 
+#define SHITTYENGINE_KEYCODE_SPACE 0x20
+#define SHITTYENGINE_KEYCODE_A 0x41
+#define SHITTYENGINE_KEYCODE_D 0x44
+#define SHITTYENGINE_KEYCODE_S 0x53
+#define SHITTYENGINE_KEYCODE_W 0x57
+
+class InputManager
+{
+public:
+    static bool IsKeyDown(int KeyCode)
+    {
+        return GetAsyncKeyState(KeyCode);
+    }
+};
 
 class Entity
 {
 public:
-    void BeginPlay()
+
+    Entity()
+    {
+        PositionY = 0;
+        PositionX = 0;
+    }
+
+    virtual void BeginPlay()
     {
 
     }
 
-    void Tick()
+    virtual void Tick()
     {
 
     }
 
+public:
+    uint16_t PositionX;
+    uint16_t PositionY;
+};
+
+class PlayerEntity : public Entity
+{
+public:
+
+   virtual void Tick() override
+   {
+     
+        if (InputManager::IsKeyDown(SHITTYENGINE_KEYCODE_D)) PositionX += 1;
+        if (InputManager::IsKeyDown(SHITTYENGINE_KEYCODE_A)) PositionX -= 1;
+        if (InputManager::IsKeyDown(SHITTYENGINE_KEYCODE_S)) PositionY += 1;
+        if (InputManager::IsKeyDown(SHITTYENGINE_KEYCODE_W)) PositionY -= 1;
+   }
 };
 
 class Scene
@@ -38,7 +76,11 @@ public:
 
         // Create new screen buffer
         m_ScreenBuffer = new CHAR_INFO[m_Rows * m_Columns];
+
+        // Clear Console
+        system("cls");
     };
+
 
     void Clear()
     {
@@ -125,15 +167,18 @@ public:
     void Tick()
     {
       
-
+        m_player.Tick();
         m_Renderer.Clear();
-        m_Renderer.SubmitRect(3, 3, 5, 5);
+        m_Renderer.SubmitRect(m_player.PositionX, m_player.PositionY, 13, 12);
         m_Renderer.Draw();
 
     }
 private:
     Scene m_Scene;
     Renderer m_Renderer;
+    
+    //tmp
+    PlayerEntity m_player;
 };
 
 
