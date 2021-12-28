@@ -17,6 +17,58 @@ public:
     }
 };
 
+class Sprite
+{
+public:
+
+    Sprite(uint16_t sizeX, uint16_t sizeY, const char* spriteBuffer)
+    {
+
+        if (strlen(spriteBuffer) != sizeX * sizeY)
+                {
+                    std::cout << "ERROR: Failed to create sprite, sizes didn't match input buffer size." << std::endl;
+                    return;
+                }
+
+
+        this->SizeX = sizeX;
+        this->SizeY = sizeY;
+
+        SpriteBuffer = new CHAR_INFO[this->SizeX * this->SizeY];
+
+        for(uint16_t i = 0; i < strlen(spriteBuffer); i++ )
+        {
+            CHAR_INFO CharInfo;
+            CharInfo.Char.AsciiChar = spriteBuffer[i];
+            CharInfo.Attributes = FOREGROUND_GREEN;
+
+            this->SpriteBuffer[i] = CharInfo;
+        }
+    }
+
+const CHAR_INFO GetChar(uint8_t x, uint8_t y)
+    {
+        uint16_t index = y * SizeX + x;
+
+        if (index < SizeX * SizeY)
+        {
+            return SpriteBuffer[index];
+        }
+
+        CHAR_INFO errorCharInfo;
+        errorCharInfo.Char.AsciiChar = 'X';
+        errorCharInfo.Attributes = FOREGROUND_RED;
+        return errorCharInfo;
+    }
+
+
+public:
+    uint16_t SizeX;
+    uint16_t SizeY;
+    CHAR_INFO* SpriteBuffer;
+
+};
+
 class Entity
 {
 public:
@@ -38,6 +90,7 @@ public:
     }
 
 public:
+    Sprite* EntitySprite;
     uint16_t PositionX;
     uint16_t PositionY;
 };
@@ -45,6 +98,11 @@ public:
 class PlayerEntity : public Entity
 {
 public:
+
+    virtual void BeginPlay()
+        {
+            EntitySprite = new Sprite(3, 3, "I I/+\\***");
+        }
 
    virtual void Tick() override
    {
@@ -54,12 +112,6 @@ public:
         if (InputManager::IsKeyDown(SHITTYENGINE_KEYCODE_S)) PositionY += 1;
         if (InputManager::IsKeyDown(SHITTYENGINE_KEYCODE_W)) PositionY -= 1;
    }
-};
-
-class Scene
-{
-public:
-    std::vector<Entity> SceneEntities;
 };
 
 class Renderer
@@ -113,6 +165,17 @@ public:
         }
     }
 
+    void SubmitSprite(uint8_t posX, uint8_t posY, Sprite* sprite)
+    { 
+        for(uint8_t x = 0; x < sprite->SizeX; x++)
+        {
+            for(uint8_t y = 0; y < sprite->SizeY; y++)
+            {
+                SubmitPixel(posX + x, posY + y, sprite->GetChar(x, y));
+            }
+        }
+    }
+
     void SubmitPixel(uint8_t row, uint8_t column, CHAR_INFO charInfo)
     {
         uint16_t index = column * m_Rows + row;
@@ -159,22 +222,35 @@ public:
 
     void BeginPlay()
     {
-       
+       m_SceneEntities.push_back(&m_player);
+
+        for (Entity* entity: m_SceneEntities)
+        {
+            entity->BeginPlay();
+        }
 
     }
 
 
     void Tick()
     {
-      
-        m_player.Tick();
+        // Call the Tick() function of all entities in m_Scene.
+        for (Entity* entity: m_SceneEntities)
+        {
+            entity->Tick();
+        }
+
         m_Renderer.Clear();
-        m_Renderer.SubmitRect(m_player.PositionX, m_player.PositionY, 13, 12);
+        // Draw all entities in the scene.
+        for (Entity* entity : m_SceneEntities)
+        {
+            m_Renderer.SubmitSprite(entity->PositionX, entity->PositionY, entity->EntitySprite);
+        }
         m_Renderer.Draw();
 
     }
 private:
-    Scene m_Scene;
+    std::vector<Entity*> m_SceneEntities;
     Renderer m_Renderer;
     
     //tmp
